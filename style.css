@@ -201,113 +201,97 @@ h1 {
     }
 }
 
-/* Guiding Arrows Overlay */
-#guiding-arrows {
+/* Edge Navigation Controls */
+#nav-controls {
     position: absolute;
     inset: 0;
+    z-index: 6;
     pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 5;
-    opacity: 0;
-    transition: opacity 0.8s ease;
 }
 
-#guiding-arrows.visible {
-    opacity: 1;
-}
-
-.guide-container {
-    position: relative;
-    width: 180px;
-    height: 180px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.guide-arrow {
+.nav-btn {
     position: absolute;
-    font-size: 3rem;
-    color: rgba(255, 40, 40, 0.45);
-    text-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
-    animation: guide-pulse 2.5s infinite ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.8rem;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: background 0.2s, color 0.2s;
+    animation: nav-pulse 3s infinite ease-in-out;
 }
 
-.guide-arrow.up {
-    top: -25px;
-    animation-name: guide-up;
+.nav-btn:hover,
+.nav-btn:active {
+    color: rgba(255, 255, 255, 0.85);
+    animation: none;
 }
 
-.guide-arrow.down {
-    bottom: -25px;
-    animation-name: guide-down;
+.nav-left {
+    left: 0;
+    top: 20%;
+    height: 60%;
+    width: 50px;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.25), transparent);
+    border-radius: 0 12px 12px 0;
 }
 
-.guide-arrow.left {
-    left: -25px;
-    animation-name: guide-left;
+.nav-left:active {
+    background: linear-gradient(to right, rgba(255, 50, 50, 0.3), transparent);
 }
 
-.guide-arrow.right {
-    right: -25px;
-    animation-name: guide-right;
+.nav-right {
+    right: 0;
+    top: 20%;
+    height: 60%;
+    width: 50px;
+    background: linear-gradient(to left, rgba(0, 0, 0, 0.25), transparent);
+    border-radius: 12px 0 0 12px;
 }
 
-@keyframes guide-up {
+.nav-right:active {
+    background: linear-gradient(to left, rgba(255, 50, 50, 0.3), transparent);
+}
+
+.nav-up {
+    top: 0;
+    left: 20%;
+    width: 60%;
+    height: 45px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.25), transparent);
+    border-radius: 0 0 12px 12px;
+}
+
+.nav-up:active {
+    background: linear-gradient(to bottom, rgba(255, 50, 50, 0.3), transparent);
+}
+
+.nav-down {
+    bottom: 0;
+    left: 20%;
+    width: 60%;
+    height: 45px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.25), transparent);
+    border-radius: 12px 12px 0 0;
+}
+
+.nav-down:active {
+    background: linear-gradient(to top, rgba(255, 50, 50, 0.3), transparent);
+}
+
+@keyframes nav-pulse {
 
     0%,
     100% {
-        transform: translateY(0) scale(1);
-        opacity: 0.15;
+        opacity: 0.4;
     }
 
     50% {
-        transform: translateY(-25px) scale(1.3);
-        opacity: 0.55;
-    }
-}
-
-@keyframes guide-down {
-
-    0%,
-    100% {
-        transform: translateY(0) rotate(180deg) scale(1);
-        opacity: 0.15;
-    }
-
-    50% {
-        transform: translateY(25px) rotate(180deg) scale(1.3);
-        opacity: 0.55;
-    }
-}
-
-@keyframes guide-left {
-
-    0%,
-    100% {
-        transform: translateX(0) rotate(-90deg) scale(1);
-        opacity: 0.15;
-    }
-
-    50% {
-        transform: translateX(-25px) rotate(-90deg) scale(1.3);
-        opacity: 0.55;
-    }
-}
-
-@keyframes guide-right {
-
-    0%,
-    100% {
-        transform: translateX(0) rotate(90deg) scale(1);
-        opacity: 0.15;
-    }
-
-    50% {
-        transform: translateX(25px) rotate(90deg) scale(1.3);
-        opacity: 0.55;
+        opacity: 0.8;
     }
 }
 
@@ -363,13 +347,16 @@ h1 {
         right: 5px;
     }
 
-    .guide-container {
-        width: 140px;
-        height: 140px;
+    .nav-left,
+    .nav-right {
+        width: 40px;
+        font-size: 1.4rem;
     }
 
-    .guide-arrow {
-        font-size: 2.5rem;
+    .nav-up,
+    .nav-down {
+        height: 38px;
+        font-size: 1.4rem;
     }
 }
 
@@ -395,17 +382,20 @@ h1 {
         font-size: 0.95rem;
     }
 
-    .guide-container {
-        width: 120px;
-        height: 120px;
-    }
-
-    .guide-arrow {
-        font-size: 2rem;
-    }
-
     #map-toggle {
         font-size: 0.65rem;
         padding: 4px 7px;
+    }
+
+    .nav-left,
+    .nav-right {
+        width: 35px;
+        font-size: 1.2rem;
+    }
+
+    .nav-up,
+    .nav-down {
+        height: 32px;
+        font-size: 1.2rem;
     }
 }

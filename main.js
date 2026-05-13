@@ -154,6 +154,7 @@ function init() {
     }, { passive: true });
 
     initMap();
+    initNavControls();
 
     // Show loader while preloading
     const loader = document.getElementById("loader");
@@ -228,6 +229,47 @@ function initMap() {
     mapContainer.addEventListener("transitionend", positionHotspots);
 }
 
+// ─── Edge Navigation Buttons (tap & hold to rotate) ─────────────
+function initNavControls() {
+    const speed = isMobile ? 1.2 : 0.8; // degrees per frame
+    let activeDir = null;
+    let navAnimFrame = null;
+
+    function navLoop() {
+        if (!activeDir) return;
+        if (activeDir === 'left') lon += speed;
+        if (activeDir === 'right') lon -= speed;
+        if (activeDir === 'up') lat = Math.min(85, lat + speed);
+        if (activeDir === 'down') lat = Math.max(-85, lat - speed);
+        navAnimFrame = requestAnimationFrame(navLoop);
+    }
+
+    function startNav(dir) {
+        activeDir = dir;
+        navLoop();
+    }
+
+    function stopNav() {
+        activeDir = null;
+        if (navAnimFrame) cancelAnimationFrame(navAnimFrame);
+        navAnimFrame = null;
+    }
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        const dir = btn.dataset.dir;
+
+        // Mouse
+        btn.addEventListener('mousedown', (e) => { e.preventDefault(); startNav(dir); });
+        btn.addEventListener('mouseup', stopNav);
+        btn.addEventListener('mouseleave', stopNav);
+
+        // Touch
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); startNav(dir); }, { passive: false });
+        btn.addEventListener('touchend', stopNav);
+        btn.addEventListener('touchcancel', stopNav);
+    });
+}
+
 function positionHotspots() {
     const mapImg = document.getElementById("map-img");
     const hotspotsContainer = document.getElementById("hotspots");
@@ -255,9 +297,6 @@ function positionHotspots() {
 
 function load360(imgPath, label) {
     document.getElementById("location-name").textContent = label;
-
-    const guidingArrows = document.getElementById("guiding-arrows");
-    if (guidingArrows) guidingArrows.classList.add("visible");
 
     // INSTANT swap if texture is already cached
     if (textureCache[imgPath]) {
