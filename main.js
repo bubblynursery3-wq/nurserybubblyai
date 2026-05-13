@@ -6,22 +6,25 @@ let onPointerDownPointerX, onPointerDownPointerY, onPointerDownLon, onPointerDow
 let audioCtx = null;
 let gainNode = null;
 let currentSource = null;
+let isLoading = false;
+
+const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent);
 
 const voiceMap = {
     "1": "voices/1.mp3.mpga",
-    "2": "voices/1.mp3.mpga", // Near Outside
-    "3": "voices/1.mp3.mpga", // Near Outside
-    "13": "voices/1.mp3.mpga", // Near Outside
+    "2": "voices/1.mp3.mpga",
+    "3": "voices/1.mp3.mpga",
+    "13": "voices/1.mp3.mpga",
     "12": "voices/Ducky room.mp3.mpga",
     "6": "voices/Panda Room.mp3.mpga",
     "7": "voices/Jirraf room.mp3.mpga",
     "8": "voices/Simba room.mp3.mpga",
     "11": "voices/Story time room.mp3.mpga",
     "14": "voices/Garden outside.mp3.mpga",
-    "15": "voices/Garden outside.mp3.mpga", // Near Garden
-    "16": "voices/1.mp3.mpga", // Near Outside
-    "4": "voices/Ducky room.mp3.mpga", // Near Reception/Class 1
-    "5": "voices/Panda Room.mp3.mpga"  // Near Middle PG
+    "15": "voices/Garden outside.mp3.mpga",
+    "16": "voices/1.mp3.mpga",
+    "4": "voices/Ducky room.mp3.mpga",
+    "5": "voices/Panda Room.mp3.mpga"
 };
 
 async function playVoice(id) {
@@ -29,7 +32,7 @@ async function playVoice(id) {
     if (!voiceFile) return;
 
     if (currentSource) {
-        currentSource.stop();
+        try { currentSource.stop(); } catch (e) { }
         currentSource = null;
     }
 
@@ -37,13 +40,10 @@ async function playVoice(id) {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             gainNode = audioCtx.createGain();
-            gainNode.gain.value = 1.8; // 1.8-fold volume increase
+            gainNode.gain.value = 1.8;
             gainNode.connect(audioCtx.destination);
         }
-
-        if (audioCtx.state === 'suspended') {
-            await audioCtx.resume();
-        }
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
 
         const response = await fetch(voiceFile);
         const arrayBuffer = await response.arrayBuffer();
@@ -87,36 +87,61 @@ const hotspotsData = [
     { "id": "26", "label": "26", "img": "26.jpg", "x": 214, "y": 34, "w": 20, "h": 20 }
 ];
 
+// Reference dimensions of the map image (natural size used for hotspot placement)
+const MAP_REF_W = 450;
+const MAP_REF_H = 300;
+
 function init() {
-    // 1. Viewer Setup
     const container = document.getElementById("viewer");
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Optimized renderer for mobile
+    renderer = new THREE.WebGLRenderer({ antialias: !isMobile });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2x
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
 
-    const geometry = new THREE.SphereGeometry(500, 60, 40);
+    // Lighter sphere for mobile (fewer segments)
+    const segments = isMobile ? 32 : 60;
+    const rings = isMobile ? 24 : 40;
+    const geometry = new THREE.SphereGeometry(500, segments, rings);
     geometry.scale(-1, 1, 1);
     const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
     sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    // 2. Interaction
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("wheel", onDocumentMouseWheel);
+    // Touch & pointer interaction
+    container.addEventListener("pointerdown", onPointerDown, { passive: false });
+    container.addEventListener("wheel", onDocumentMouseWheel, { passive: true });
     window.addEventListener("resize", onWindowResize);
 
-    // 3. Map Setup
+    // Touch gesture support (pinch to zoom)
+    let lastTouchDist = 0;
+    container.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            lastTouchDist = Math.sqrt(dx * dx + dy * dy);
+        }
+    }, { passive: true });
+
+    container.addEventListener("touchmove", (e) => {
+        if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const delta = lastTouchDist - dist;
+            camera.fov += delta * 0.1;
+            camera.fov = Math.max(30, Math.min(90, camera.fov));
+            camera.updateProjectionMatrix();
+            lastTouchDist = dist;
+        }
+    }, { passive: true });
+
     initMap();
-
-    // 4. Load initial scene
     load360("1.jpg", "Outside");
-    // We don't call playVoice("1") here because autoplay is usually blocked.
-    // It will start when the user interacts with the map.
 
-    // Keyboard controls
     window.addEventListener("keydown", (e) => {
         const step = 5;
         if (e.key === "ArrowLeft") lon += step;
@@ -133,101 +158,129 @@ function initMap() {
     const mapToggle = document.getElementById("map-toggle");
     const mapContainer = document.getElementById("map-container");
     const hotspotsContainer = document.getElementById("hotspots");
+    const mapImg = document.getElementById("map-img");
 
-    mapToggle.addEventListener("click", () => {
+    mapToggle.addEventListener("click", (e) => {
+        e.stopPropagation();
         if (mapContainer.classList.contains("minimized")) {
             mapContainer.classList.remove("minimized");
             mapContainer.classList.add("maximized");
             mapToggle.querySelector(".icon").textContent = "⤓";
-            mapToggle.querySelector(".text").textContent = "Minimize Map";
+            mapToggle.querySelector(".text").textContent = "Minimize";
         } else {
             mapContainer.classList.add("minimized");
             mapContainer.classList.remove("maximized");
             mapToggle.querySelector(".icon").textContent = "⤢";
-            mapToggle.querySelector(".text").textContent = "Extend Map";
+            mapToggle.querySelector(".text").textContent = "Map";
         }
+        // Reposition hotspots after transition
+        setTimeout(positionHotspots, 600);
     });
 
+    // Build hotspot divs
     hotspotsData.forEach(data => {
         const div = document.createElement("div");
         div.className = "hotspot" + (data.draft ? " draft" : "");
         div.textContent = data.label;
+        div.dataset.hx = data.x;
+        div.dataset.hy = data.y;
+        div.dataset.hw = data.w;
+        div.dataset.hh = data.h;
 
-        // Use percentages for responsiveness (assuming reference size 450x300)
-        const refW = 450;
-        const refH = 300;
-        div.style.left = (data.x / refW * 100) + "%";
-        div.style.top = (data.y / refH * 100) + "%";
-        div.style.width = (data.w / refW * 100) + "%";
-        div.style.height = (data.h / refH * 100) + "%";
-
-        // Navigation on click
         div.addEventListener("click", (e) => {
-            if (div.dataset.dragging === "true") return;
-            load360(data.img, data.label);
+            e.stopPropagation();
+            load360("img/" + data.img, data.label);
             playVoice(data.id);
-        });
-
-        // Drag and Drop Logic
-        let isDragging = false;
-        div.addEventListener("mousedown", (e) => {
-            isDragging = true;
-            div.dataset.dragging = "false";
-            const startX = e.clientX - div.offsetLeft;
-            const startY = e.clientY - div.offsetTop;
-
-            const onMouseMove = (moveEvent) => {
-                isDragging = true;
-                div.dataset.dragging = "true";
-                const newX = moveEvent.clientX - startX;
-                const newY = moveEvent.clientY - startY;
-                div.style.left = newX + "px";
-                div.style.top = newY + "px";
-                data.x = newX;
-                data.y = newY;
-            };
-
-            const onMouseUp = () => {
-                document.removeEventListener("mousemove", onMouseMove);
-                document.removeEventListener("mouseup", onMouseUp);
-                setTimeout(() => { div.dataset.dragging = "false"; isDragging = false; }, 100);
-            };
-
-            document.addEventListener("mousemove", onMouseMove);
-            document.addEventListener("mouseup", onMouseUp);
+            // Auto-minimize map on mobile after clicking
+            if (isMobile && mapContainer.classList.contains("maximized")) {
+                mapContainer.classList.add("minimized");
+                mapContainer.classList.remove("maximized");
+                mapToggle.querySelector(".icon").textContent = "⤢";
+                mapToggle.querySelector(".text").textContent = "Map";
+            }
         });
 
         hotspotsContainer.appendChild(div);
     });
 
-    // Press 'S' to save and log coordinates
-    window.addEventListener("keydown", (e) => {
-        if (e.key.toLowerCase() === "s") {
-            console.log("--- UPDATED HOTSPOT COORDINATES ---");
-            console.log(JSON.stringify(hotspotsData, null, 2));
-            alert("Coordinates logged to console! (Press F12 to see them)");
-        }
+    // Position hotspots after map image loads
+    if (mapImg.complete) {
+        positionHotspots();
+    } else {
+        mapImg.addEventListener("load", positionHotspots);
+    }
+
+    // Reposition on resize
+    window.addEventListener("resize", positionHotspots);
+
+    // Also reposition after CSS transition ends
+    mapContainer.addEventListener("transitionend", positionHotspots);
+}
+
+function positionHotspots() {
+    const mapImg = document.getElementById("map-img");
+    const hotspotsContainer = document.getElementById("hotspots");
+    const hotspotDivs = hotspotsContainer.querySelectorAll(".hotspot");
+
+    if (!mapImg || !mapImg.naturalWidth) return;
+
+    // Get actual rendered size and position of the map image
+    const imgRect = mapImg.getBoundingClientRect();
+    const containerRect = hotspotsContainer.getBoundingClientRect();
+
+    // Offset of the image within the container
+    const offsetX = imgRect.left - containerRect.left;
+    const offsetY = imgRect.top - containerRect.top;
+
+    // Scale factors
+    const scaleX = imgRect.width / MAP_REF_W;
+    const scaleY = imgRect.height / MAP_REF_H;
+
+    hotspotDivs.forEach((div, i) => {
+        const hx = parseFloat(div.dataset.hx);
+        const hy = parseFloat(div.dataset.hy);
+        const hw = parseFloat(div.dataset.hw);
+        const hh = parseFloat(div.dataset.hh);
+
+        div.style.left = (offsetX + hx * scaleX) + "px";
+        div.style.top = (offsetY + hy * scaleY) + "px";
+        div.style.width = (hw * scaleX) + "px";
+        div.style.height = (hh * scaleY) + "px";
     });
 }
 
 function load360(imgName, label) {
+    if (isLoading) return;
+    isLoading = true;
+
     document.getElementById("location-name").textContent = label;
 
-    // Show guiding arrows (persistent)
+    // Show loading indicator
+    const loader = document.getElementById("loader");
+    if (loader) loader.classList.add("visible");
+
+    // Show guiding arrows
     const guidingArrows = document.getElementById("guiding-arrows");
-    if (guidingArrows) {
-        guidingArrows.classList.add("visible");
-    }
+    if (guidingArrows) guidingArrows.classList.add("visible");
 
     new THREE.TextureLoader().load(imgName, texture => {
         texture.colorSpace = THREE.SRGBColorSpace;
+        // Dispose old texture
+        if (sphere.material.map) sphere.material.map.dispose();
         sphere.material.map = texture;
         sphere.material.needsUpdate = true;
+        isLoading = false;
+        if (loader) loader.classList.remove("visible");
+    }, undefined, (err) => {
+        console.warn("Failed to load image:", imgName, err);
+        isLoading = false;
+        if (loader) loader.classList.remove("visible");
     });
 }
 
 function onPointerDown(event) {
     if (event.target.tagName !== "CANVAS") return;
+    event.preventDefault();
     onPointerDownPointerX = event.clientX;
     onPointerDownPointerY = event.clientY;
     onPointerDownLon = lon;
@@ -237,8 +290,10 @@ function onPointerDown(event) {
 }
 
 function onPointerMove(event) {
-    lon = (onPointerDownPointerX - event.clientX) * 0.1 + onPointerDownLon;
-    lat = (event.clientY - onPointerDownPointerY) * 0.1 + onPointerDownLat;
+    // Higher sensitivity for smoother mobile experience
+    const sensitivity = isMobile ? 0.25 : 0.15;
+    lon = (onPointerDownPointerX - event.clientX) * sensitivity + onPointerDownLon;
+    lat = (event.clientY - onPointerDownPointerY) * sensitivity + onPointerDownLat;
     lat = Math.max(-85, Math.min(85, lat));
 }
 

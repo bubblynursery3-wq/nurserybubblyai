@@ -7,17 +7,26 @@ html {
     overflow: hidden;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #000;
+    touch-action: none;
+    /* Prevent browser gestures */
+    -webkit-overflow-scrolling: touch;
 }
 
 #viewer {
     width: 100%;
     height: 100%;
+    touch-action: none;
+}
+
+#viewer canvas {
+    display: block;
+    touch-action: none;
 }
 
 #ui-overlay {
     position: absolute;
-    top: 30px;
-    left: 30px;
+    top: 20px;
+    left: 20px;
     color: white;
     pointer-events: none;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
@@ -27,58 +36,98 @@ html {
 h1 {
     margin: 0;
     font-weight: 300;
-    font-size: 1.8rem;
+    font-size: 1.5rem;
+}
+
+/* Loading Spinner */
+#loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+#loader.visible {
+    opacity: 1;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Map Container */
 #map-container {
     position: absolute;
-    bottom: 30px;
-    right: 30px;
-    background: rgba(15, 15, 15, 0.7);
-    backdrop-filter: blur(15px);
+    bottom: 15px;
+    right: 15px;
+    background: rgba(15, 15, 15, 0.75);
+    backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
     z-index: 100;
     overflow: hidden;
 }
 
 #map-container.minimized {
-    width: 400px;
-    max-width: 90vw;
-    height: 280px;
-    max-height: 40vh;
+    width: 350px;
+    max-width: 45vw;
+    height: 250px;
+    max-height: 35vh;
 }
 
 #map-container.maximized {
-    width: 98vw;
-    height: 98vh;
-    bottom: 1vh;
-    right: 1vw;
+    width: 96vw;
+    height: 96vh;
+    bottom: 2vh;
+    right: 2vw;
 }
 
 /* Toggle Button */
 #map-toggle {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(255, 255, 255, 0.8);
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.85);
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     color: black;
-    padding: 8px 12px;
+    padding: 6px 10px;
     cursor: pointer;
     z-index: 110;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: background 0.3s;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: background 0.2s;
+    touch-action: manipulation;
 }
 
 #map-toggle:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 1);
+}
+
+#map-toggle:active {
+    transform: scale(0.95);
 }
 
 /* Map Content */
@@ -89,12 +138,14 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 #map-img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    display: block;
 }
 
 /* Hotspots */
@@ -114,21 +165,22 @@ h1 {
     border-radius: 4px;
     cursor: pointer;
     pointer-events: auto;
-    transition: all 0.2s;
+    transition: all 0.15s;
     display: flex;
     align-items: center;
     justify-content: center;
     color: transparent;
     font-size: 0;
     overflow: hidden;
-
-    /* Internal Pulsing Glow */
     animation: hotspot-pulse 3s infinite;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.hotspot:hover {
-    background: rgba(0, 123, 255, 0.1);
-    box-shadow: inset 0 0 10px rgba(0, 123, 255, 0.5);
+.hotspot:hover,
+.hotspot:active {
+    background: rgba(0, 200, 255, 0.15);
+    box-shadow: inset 0 0 12px rgba(0, 200, 255, 0.6);
 }
 
 @keyframes hotspot-pulse {
@@ -138,9 +190,9 @@ h1 {
     }
 
     50% {
-        box-shadow: inset 0 0 20px 8px rgba(0, 255, 255, 0.8), 0 0 15px 2px rgba(0, 255, 255, 0.4);
-        transform: scale(1.1);
-        background: rgba(0, 255, 255, 0.1);
+        box-shadow: inset 0 0 18px 6px rgba(0, 255, 255, 0.7), 0 0 12px 2px rgba(0, 255, 255, 0.35);
+        transform: scale(1.08);
+        background: rgba(0, 255, 255, 0.08);
     }
 
     100% {
@@ -159,7 +211,7 @@ h1 {
     justify-content: center;
     z-index: 5;
     opacity: 0;
-    transition: opacity 1s ease;
+    transition: opacity 0.8s ease;
 }
 
 #guiding-arrows.visible {
@@ -168,8 +220,8 @@ h1 {
 
 .guide-container {
     position: relative;
-    width: 200px;
-    height: 200px;
+    width: 180px;
+    height: 180px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -177,31 +229,29 @@ h1 {
 
 .guide-arrow {
     position: absolute;
-    font-size: 3.5rem;
-    /* Increased size */
+    font-size: 3rem;
     color: rgba(255, 40, 40, 0.45);
-    /* Visible Red */
-    text-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+    text-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
     animation: guide-pulse 2.5s infinite ease-in-out;
 }
 
 .guide-arrow.up {
-    top: -30px;
+    top: -25px;
     animation-name: guide-up;
 }
 
 .guide-arrow.down {
-    bottom: -30px;
+    bottom: -25px;
     animation-name: guide-down;
 }
 
 .guide-arrow.left {
-    left: -30px;
+    left: -25px;
     animation-name: guide-left;
 }
 
 .guide-arrow.right {
-    right: -30px;
+    right: -25px;
     animation-name: guide-right;
 }
 
@@ -210,12 +260,12 @@ h1 {
     0%,
     100% {
         transform: translateY(0) scale(1);
-        opacity: 0.1;
+        opacity: 0.15;
     }
 
     50% {
-        transform: translateY(-30px) scale(1.4);
-        opacity: 0.5;
+        transform: translateY(-25px) scale(1.3);
+        opacity: 0.55;
     }
 }
 
@@ -224,12 +274,12 @@ h1 {
     0%,
     100% {
         transform: translateY(0) rotate(180deg) scale(1);
-        opacity: 0.1;
+        opacity: 0.15;
     }
 
     50% {
-        transform: translateY(30px) rotate(180deg) scale(1.4);
-        opacity: 0.5;
+        transform: translateY(25px) rotate(180deg) scale(1.3);
+        opacity: 0.55;
     }
 }
 
@@ -238,12 +288,12 @@ h1 {
     0%,
     100% {
         transform: translateX(0) rotate(-90deg) scale(1);
-        opacity: 0.1;
+        opacity: 0.15;
     }
 
     50% {
-        transform: translateX(-30px) rotate(-90deg) scale(1.4);
-        opacity: 0.5;
+        transform: translateX(-25px) rotate(-90deg) scale(1.3);
+        opacity: 0.55;
     }
 }
 
@@ -252,57 +302,110 @@ h1 {
     0%,
     100% {
         transform: translateX(0) rotate(90deg) scale(1);
-        opacity: 0.1;
+        opacity: 0.15;
     }
 
     50% {
-        transform: translateX(30px) rotate(90deg) scale(1.4);
-        opacity: 0.5;
+        transform: translateX(25px) rotate(90deg) scale(1.3);
+        opacity: 0.55;
     }
 }
 
-/* Mobile Adjustments */
-@media (max-width: 768px) {
-    #ui-overlay {
-        top: 20px;
-        left: 20px;
+/* ============ RESPONSIVE ============ */
+
+/* Tablets */
+@media (max-width: 1024px) {
+    #map-container.minimized {
+        width: 320px;
+        max-width: 50vw;
+        height: 220px;
     }
 
     h1 {
-        font-size: 1.4rem;
+        font-size: 1.3rem;
+    }
+}
+
+/* Phones */
+@media (max-width: 768px) {
+    #ui-overlay {
+        top: 12px;
+        left: 12px;
+    }
+
+    h1 {
+        font-size: 1.1rem;
+    }
+
+    #map-container {
+        bottom: 10px;
+        right: 10px;
     }
 
     #map-container.minimized {
-        width: 300px;
-        height: 210px;
-        bottom: 20px;
-        right: 20px;
+        width: 260px;
+        max-width: 65vw;
+        height: 180px;
+        max-height: 30vh;
+    }
+
+    #map-container.maximized {
+        width: 98vw;
+        height: 80vh;
+        bottom: 1vh;
+        right: 1vw;
     }
 
     #map-toggle {
-        padding: 6px 10px;
-        font-size: 0.8rem;
+        padding: 5px 8px;
+        font-size: 0.7rem;
+        top: 5px;
+        right: 5px;
     }
 
     .guide-container {
-        width: 150px;
-        height: 150px;
+        width: 140px;
+        height: 140px;
+    }
+
+    .guide-arrow {
+        font-size: 2.5rem;
+    }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+    #map-container.minimized {
+        width: 200px;
+        max-width: 55vw;
+        height: 140px;
+        max-height: 25vh;
+        bottom: 8px;
+        right: 8px;
+    }
+
+    #map-container.maximized {
+        width: 98vw;
+        height: 85vh;
+        bottom: 1vh;
+        right: 1vw;
+    }
+
+    h1 {
+        font-size: 0.95rem;
+    }
+
+    .guide-container {
+        width: 120px;
+        height: 120px;
     }
 
     .guide-arrow {
         font-size: 2rem;
     }
-}
 
-@media (max-width: 480px) {
-    #map-container.minimized {
-        width: 220px;
-        height: 154px;
-        bottom: 10px;
-        right: 10px;
-    }
-
-    h1 {
-        font-size: 1.1rem;
+    #map-toggle {
+        font-size: 0.65rem;
+        padding: 4px 7px;
     }
 }

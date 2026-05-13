@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Bubbly Map Tour</title>
     <script type="importmap">
         {
@@ -13,9 +16,15 @@
     </script>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <!-- 360 Viewer -->
     <div id="viewer"></div>
+
+    <!-- Loading Spinner -->
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
 
     <!-- UI Overlay -->
     <div id="ui-overlay">
@@ -36,15 +45,15 @@
     <div id="map-container" class="minimized">
         <button id="map-toggle">
             <span class="icon">⤢</span>
-            <span class="text">Extend Map</span>
+            <span class="text">Map</span>
         </button>
         <div id="map-wrapper">
             <img src="map.png" id="map-img" alt="Floor Plan">
-            <!-- Hotspots will be injected here -->
             <div id="hotspots"></div>
         </div>
     </div>
 
     <script type="module" src="main.js"></script>
 </body>
+
 </html>
