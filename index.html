@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubbly Map Tour</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 360 Viewer -->
+    <div id="viewer"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-overlay">
+        <h1 id="location-name">Select a room on the map</h1>
+    </div>
+
+    <!-- Guiding Arrows Overlay -->
+    <div id="guiding-arrows">
+        <div class="guide-container">
+            <div class="guide-arrow up">▲</div>
+            <div class="guide-arrow down">▼</div>
+            <div class="guide-arrow left">◀</div>
+            <div class="guide-arrow right">▶</div>
+        </div>
+    </div>
+
+    <!-- Interactive Map -->
+    <div id="map-container" class="minimized">
+        <button id="map-toggle">
+            <span class="icon">⤢</span>
+            <span class="text">Extend Map</span>
+        </button>
+        <div id="map-wrapper">
+            <img src="map.png" id="map-img" alt="Floor Plan">
+            <!-- Hotspots will be injected here -->
+            <div id="hotspots"></div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
