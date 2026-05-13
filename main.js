@@ -6,9 +6,12 @@ let onPointerDownPointerX, onPointerDownPointerY, onPointerDownLon, onPointerDow
 let audioCtx = null;
 let gainNode = null;
 let currentSource = null;
-let isLoading = false;
 
 const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent);
+
+// Preloaded texture cache — key: filename, value: THREE.Texture
+const textureCache = {};
+const textureLoader = new THREE.TextureLoader();
 
 const voiceMap = {
     "1": "voices/1.mp3.mpga",
@@ -30,12 +33,10 @@ const voiceMap = {
 async function playVoice(id) {
     const voiceFile = voiceMap[id];
     if (!voiceFile) return;
-
     if (currentSource) {
         try { currentSource.stop(); } catch (e) { }
         currentSource = null;
     }
-
     try {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -44,11 +45,9 @@ async function playVoice(id) {
             gainNode.connect(audioCtx.destination);
         }
         if (audioCtx.state === 'suspended') await audioCtx.resume();
-
         const response = await fetch(voiceFile);
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
         currentSource = audioCtx.createBufferSource();
         currentSource.buffer = audioBuffer;
         currentSource.connect(gainNode);
@@ -87,36 +86,53 @@ const hotspotsData = [
     { "id": "26", "label": "26", "img": "26.jpg", "x": 214, "y": 34, "w": 20, "h": 20 }
 ];
 
-// Reference dimensions of the map image (natural size used for hotspot placement)
 const MAP_REF_W = 450;
 const MAP_REF_H = 300;
+
+// ─── Preload ALL textures at startup ───────────────────────────────
+function preloadAllTextures() {
+    const loader = document.getElementById("loader");
+    const total = hotspotsData.length;
+    let loaded = 0;
+
+    hotspotsData.forEach(data => {
+        const path = "img/" + data.img;
+        textureLoader.load(path, (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            textureCache[path] = texture;
+            loaded++;
+            // Hide loader when first image is done (so user sees something fast)
+            if (loaded === 1 && loader) loader.classList.remove("visible");
+        });
+    });
+}
 
 function init() {
     const container = document.getElementById("viewer");
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-    // Optimized renderer for mobile
-    renderer = new THREE.WebGLRenderer({ antialias: !isMobile });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2x
+    // Ultra-lightweight renderer for mobile
+    renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
 
-    // Lighter sphere for mobile (fewer segments)
-    const segments = isMobile ? 32 : 60;
-    const rings = isMobile ? 24 : 40;
+    // Lighter sphere
+    const segments = isMobile ? 24 : 48;
+    const rings = isMobile ? 16 : 32;
     const geometry = new THREE.SphereGeometry(500, segments, rings);
     geometry.scale(-1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const material = new THREE.MeshBasicMaterial({ color: 0x111111 });
     sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    // Touch & pointer interaction
+    // Touch & pointer
     container.addEventListener("pointerdown", onPointerDown, { passive: false });
     container.addEventListener("wheel", onDocumentMouseWheel, { passive: true });
     window.addEventListener("resize", onWindowResize);
 
-    // Touch gesture support (pinch to zoom)
+    // Pinch to zoom
     let lastTouchDist = 0;
     container.addEventListener("touchstart", (e) => {
         if (e.touches.length === 2) {
@@ -125,14 +141,12 @@ function init() {
             lastTouchDist = Math.sqrt(dx * dx + dy * dy);
         }
     }, { passive: true });
-
     container.addEventListener("touchmove", (e) => {
         if (e.touches.length === 2) {
             const dx = e.touches[0].clientX - e.touches[1].clientX;
             const dy = e.touches[0].clientY - e.touches[1].clientY;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const delta = lastTouchDist - dist;
-            camera.fov += delta * 0.1;
+            camera.fov += (lastTouchDist - dist) * 0.15;
             camera.fov = Math.max(30, Math.min(90, camera.fov));
             camera.updateProjectionMatrix();
             lastTouchDist = dist;
@@ -140,7 +154,14 @@ function init() {
     }, { passive: true });
 
     initMap();
-    load360("1.jpg", "Outside");
+
+    // Show loader while preloading
+    const loader = document.getElementById("loader");
+    if (loader) loader.classList.add("visible");
+
+    // Load first image immediately, then preload everything
+    load360("img/1.jpg", "Outside");
+    preloadAllTextures();
 
     window.addEventListener("keydown", (e) => {
         const step = 5;
@@ -173,11 +194,9 @@ function initMap() {
             mapToggle.querySelector(".icon").textContent = "⤢";
             mapToggle.querySelector(".text").textContent = "Map";
         }
-        // Reposition hotspots after transition
-        setTimeout(positionHotspots, 600);
+        setTimeout(positionHotspots, 500);
     });
 
-    // Build hotspot divs
     hotspotsData.forEach(data => {
         const div = document.createElement("div");
         div.className = "hotspot" + (data.draft ? " draft" : "");
@@ -191,7 +210,7 @@ function initMap() {
             e.stopPropagation();
             load360("img/" + data.img, data.label);
             playVoice(data.id);
-            // Auto-minimize map on mobile after clicking
+            // Auto-minimize on mobile
             if (isMobile && mapContainer.classList.contains("maximized")) {
                 mapContainer.classList.add("minimized");
                 mapContainer.classList.remove("maximized");
@@ -203,17 +222,9 @@ function initMap() {
         hotspotsContainer.appendChild(div);
     });
 
-    // Position hotspots after map image loads
-    if (mapImg.complete) {
-        positionHotspots();
-    } else {
-        mapImg.addEventListener("load", positionHotspots);
-    }
-
-    // Reposition on resize
+    if (mapImg.complete) positionHotspots();
+    else mapImg.addEventListener("load", positionHotspots);
     window.addEventListener("resize", positionHotspots);
-
-    // Also reposition after CSS transition ends
     mapContainer.addEventListener("transitionend", positionHotspots);
 }
 
@@ -221,27 +232,20 @@ function positionHotspots() {
     const mapImg = document.getElementById("map-img");
     const hotspotsContainer = document.getElementById("hotspots");
     const hotspotDivs = hotspotsContainer.querySelectorAll(".hotspot");
-
     if (!mapImg || !mapImg.naturalWidth) return;
 
-    // Get actual rendered size and position of the map image
     const imgRect = mapImg.getBoundingClientRect();
     const containerRect = hotspotsContainer.getBoundingClientRect();
-
-    // Offset of the image within the container
     const offsetX = imgRect.left - containerRect.left;
     const offsetY = imgRect.top - containerRect.top;
-
-    // Scale factors
     const scaleX = imgRect.width / MAP_REF_W;
     const scaleY = imgRect.height / MAP_REF_H;
 
-    hotspotDivs.forEach((div, i) => {
+    hotspotDivs.forEach((div) => {
         const hx = parseFloat(div.dataset.hx);
         const hy = parseFloat(div.dataset.hy);
         const hw = parseFloat(div.dataset.hw);
         const hh = parseFloat(div.dataset.hh);
-
         div.style.left = (offsetX + hx * scaleX) + "px";
         div.style.top = (offsetY + hy * scaleY) + "px";
         div.style.width = (hw * scaleX) + "px";
@@ -249,31 +253,28 @@ function positionHotspots() {
     });
 }
 
-function load360(imgName, label) {
-    if (isLoading) return;
-    isLoading = true;
-
+function load360(imgPath, label) {
     document.getElementById("location-name").textContent = label;
 
-    // Show loading indicator
-    const loader = document.getElementById("loader");
-    if (loader) loader.classList.add("visible");
-
-    // Show guiding arrows
     const guidingArrows = document.getElementById("guiding-arrows");
     if (guidingArrows) guidingArrows.classList.add("visible");
 
-    new THREE.TextureLoader().load(imgName, texture => {
+    // INSTANT swap if texture is already cached
+    if (textureCache[imgPath]) {
+        sphere.material.map = textureCache[imgPath];
+        sphere.material.needsUpdate = true;
+        return;
+    }
+
+    // Otherwise load it (first time only)
+    const loader = document.getElementById("loader");
+    if (loader) loader.classList.add("visible");
+
+    textureLoader.load(imgPath, (texture) => {
         texture.colorSpace = THREE.SRGBColorSpace;
-        // Dispose old texture
-        if (sphere.material.map) sphere.material.map.dispose();
+        textureCache[imgPath] = texture;
         sphere.material.map = texture;
         sphere.material.needsUpdate = true;
-        isLoading = false;
-        if (loader) loader.classList.remove("visible");
-    }, undefined, (err) => {
-        console.warn("Failed to load image:", imgName, err);
-        isLoading = false;
         if (loader) loader.classList.remove("visible");
     });
 }
@@ -290,8 +291,8 @@ function onPointerDown(event) {
 }
 
 function onPointerMove(event) {
-    // Higher sensitivity for smoother mobile experience
-    const sensitivity = isMobile ? 0.25 : 0.15;
+    // Very responsive touch — higher multiplier for mobile
+    const sensitivity = isMobile ? 0.35 : 0.2;
     lon = (onPointerDownPointerX - event.clientX) * sensitivity + onPointerDownLon;
     lat = (event.clientY - onPointerDownPointerY) * sensitivity + onPointerDownLat;
     lat = Math.max(-85, Math.min(85, lat));
@@ -316,10 +317,6 @@ function onWindowResize() {
 
 function animate() {
     requestAnimationFrame(animate);
-    update();
-}
-
-function update() {
     phi = THREE.MathUtils.degToRad(90 - lat);
     theta = THREE.MathUtils.degToRad(lon);
     const target = new THREE.Vector3();
