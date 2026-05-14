@@ -201,98 +201,97 @@ h1 {
     }
 }
 
-/* Edge Navigation Controls */
-#nav-controls {
+/* Scroll Bar Navigation */
+#scroll-nav {
     position: absolute;
     inset: 0;
     z-index: 6;
     pointer-events: none;
 }
 
-.nav-btn {
+.scroll-bar {
     position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 1.8rem;
-    cursor: pointer;
     pointer-events: auto;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    transition: background 0.2s, color 0.2s;
-    animation: nav-pulse 3s infinite ease-in-out;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    outline: none;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+    touch-action: none;
 }
 
-.nav-btn:hover,
-.nav-btn:active {
-    color: rgba(255, 255, 255, 0.85);
-    animation: none;
+.scroll-bar:hover,
+.scroll-bar:active {
+    opacity: 0.85;
 }
 
-.nav-left {
-    left: 0;
-    top: 20%;
-    height: 60%;
-    width: 50px;
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.25), transparent);
-    border-radius: 0 12px 12px 0;
+/* Horizontal scroll bar — bottom center */
+.scroll-bar.horizontal {
+    bottom: 12px;
+    left: 10%;
+    width: 80%;
+    height: 28px;
 }
 
-.nav-left:active {
-    background: linear-gradient(to right, rgba(255, 50, 50, 0.3), transparent);
+/* Vertical scroll bar — right side */
+.scroll-bar.vertical {
+    right: 12px;
+    top: 10%;
+    height: 80%;
+    width: 28px;
+    writing-mode: vertical-lr;
+    direction: rtl;
+    /* so top = up, bottom = down */
 }
 
-.nav-right {
-    right: 0;
-    top: 20%;
-    height: 60%;
-    width: 50px;
-    background: linear-gradient(to left, rgba(0, 0, 0, 0.25), transparent);
-    border-radius: 12px 0 0 12px;
+/* Track styling */
+.scroll-bar::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
 }
 
-.nav-right:active {
-    background: linear-gradient(to left, rgba(255, 50, 50, 0.3), transparent);
+.scroll-bar.vertical::-webkit-slider-runnable-track {
+    width: 6px;
+    height: auto;
+    border-radius: 3px;
 }
 
-.nav-up {
-    top: 0;
-    left: 20%;
-    width: 60%;
-    height: 45px;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.25), transparent);
-    border-radius: 0 0 12px 12px;
+/* Thumb styling */
+.scroll-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 60, 60, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    cursor: grab;
+    margin-top: -11px;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
-.nav-up:active {
-    background: linear-gradient(to bottom, rgba(255, 50, 50, 0.3), transparent);
+.scroll-bar::-webkit-slider-thumb:active {
+    background: rgba(255, 60, 60, 0.9);
+    cursor: grabbing;
+    transform: scale(1.15);
 }
 
-.nav-down {
-    bottom: 0;
-    left: 20%;
-    width: 60%;
-    height: 45px;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.25), transparent);
-    border-radius: 12px 12px 0 0;
+/* Firefox */
+.scroll-bar::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
 }
 
-.nav-down:active {
-    background: linear-gradient(to top, rgba(255, 50, 50, 0.3), transparent);
-}
-
-@keyframes nav-pulse {
-
-    0%,
-    100% {
-        opacity: 0.4;
-    }
-
-    50% {
-        opacity: 0.8;
-    }
+.scroll-bar::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 60, 60, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    cursor: grab;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
 /* ============ RESPONSIVE ============ */
@@ -347,16 +346,27 @@ h1 {
         right: 5px;
     }
 
-    .nav-left,
-    .nav-right {
-        width: 40px;
-        font-size: 1.4rem;
+    .scroll-bar.horizontal {
+        bottom: 8px;
+        left: 5%;
+        width: 70%;
     }
 
-    .nav-up,
-    .nav-down {
-        height: 38px;
-        font-size: 1.4rem;
+    .scroll-bar.vertical {
+        right: 8px;
+        top: 5%;
+        height: 65%;
+    }
+
+    .scroll-bar::-webkit-slider-thumb {
+        width: 32px;
+        height: 32px;
+        margin-top: -13px;
+    }
+
+    .scroll-bar::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
     }
 }
 
@@ -387,15 +397,26 @@ h1 {
         padding: 4px 7px;
     }
 
-    .nav-left,
-    .nav-right {
-        width: 35px;
-        font-size: 1.2rem;
+    .scroll-bar.horizontal {
+        bottom: 6px;
+        left: 5%;
+        width: 65%;
     }
 
-    .nav-up,
-    .nav-down {
+    .scroll-bar.vertical {
+        right: 6px;
+        top: 5%;
+        height: 55%;
+    }
+
+    .scroll-bar::-webkit-slider-thumb {
+        width: 36px;
+        height: 36px;
+        margin-top: -15px;
+    }
+
+    .scroll-bar::-moz-range-thumb {
+        width: 32px;
         height: 32px;
-        font-size: 1.2rem;
     }
 }

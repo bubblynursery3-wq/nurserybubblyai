@@ -31,12 +31,10 @@
         <h1 id="location-name">Select a room on the map</h1>
     </div>
 
-    <!-- Edge Navigation Controls (tap & hold to rotate) -->
-    <div id="nav-controls">
-        <div class="nav-btn nav-left" data-dir="left">◀</div>
-        <div class="nav-btn nav-right" data-dir="right">▶</div>
-        <div class="nav-btn nav-up" data-dir="up">▲</div>
-        <div class="nav-btn nav-down" data-dir="down">▼</div>
+    <!-- Scroll Bar Navigation -->
+    <div id="scroll-nav">
+        <input type="range" id="scroll-h" class="scroll-bar horizontal" min="0" max="360" value="180" step="1">
+        <input type="range" id="scroll-v" class="scroll-bar vertical" min="0" max="170" value="85" step="1">
     </div>
 
     <!-- Interactive Map -->

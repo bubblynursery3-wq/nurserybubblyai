@@ -123,7 +123,7 @@ function init() {
     const rings = isMobile ? 16 : 32;
     const geometry = new THREE.SphereGeometry(500, segments, rings);
     geometry.scale(-1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
     sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
@@ -229,45 +229,30 @@ function initMap() {
     mapContainer.addEventListener("transitionend", positionHotspots);
 }
 
-// ─── Edge Navigation Buttons (tap & hold to rotate) ─────────────
+// ─── Scroll Bar Navigation ──────────────────────────────────────
 function initNavControls() {
-    const speed = isMobile ? 1.2 : 0.8; // degrees per frame
-    let activeDir = null;
-    let navAnimFrame = null;
+    const scrollH = document.getElementById('scroll-h');
+    const scrollV = document.getElementById('scroll-v');
 
-    function navLoop() {
-        if (!activeDir) return;
-        if (activeDir === 'left') lon += speed;
-        if (activeDir === 'right') lon -= speed;
-        if (activeDir === 'up') lat = Math.min(85, lat + speed);
-        if (activeDir === 'down') lat = Math.max(-85, lat - speed);
-        navAnimFrame = requestAnimationFrame(navLoop);
-    }
-
-    function startNav(dir) {
-        activeDir = dir;
-        navLoop();
-    }
-
-    function stopNav() {
-        activeDir = null;
-        if (navAnimFrame) cancelAnimationFrame(navAnimFrame);
-        navAnimFrame = null;
-    }
-
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        const dir = btn.dataset.dir;
-
-        // Mouse
-        btn.addEventListener('mousedown', (e) => { e.preventDefault(); startNav(dir); });
-        btn.addEventListener('mouseup', stopNav);
-        btn.addEventListener('mouseleave', stopNav);
-
-        // Touch
-        btn.addEventListener('touchstart', (e) => { e.preventDefault(); startNav(dir); }, { passive: false });
-        btn.addEventListener('touchend', stopNav);
-        btn.addEventListener('touchcancel', stopNav);
+    // Horizontal slider → controls lon (0-360)
+    scrollH.addEventListener('input', () => {
+        lon = parseFloat(scrollH.value);
     });
+
+    // Vertical slider → controls lat (0-170 → mapped to -85 to +85)
+    scrollV.addEventListener('input', () => {
+        lat = parseFloat(scrollV.value) - 85; // 0→-85, 85→0, 170→+85
+    });
+
+    // Sync sliders when user drags panorama directly
+    function syncSliders() {
+        // Normalize lon to 0-360
+        let normalizedLon = ((lon % 360) + 360) % 360;
+        scrollH.value = normalizedLon;
+        scrollV.value = lat + 85; // -85→0, 0→85, +85→170
+        requestAnimationFrame(syncSliders);
+    }
+    syncSliders();
 }
 
 function positionHotspots() {
